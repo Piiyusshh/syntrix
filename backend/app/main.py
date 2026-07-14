@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.users import router as user_router
+from app.api.auth import router as auth_router
 
 app = FastAPI(
     title="Syntrix API",
@@ -8,19 +9,11 @@ app = FastAPI(
 )
 
 app.include_router(user_router)
+app.include_router(auth_router)
 
 
 @app.get("/")
 def root():
     return {
-        "application": "Syntrix",
-        "version": "0.1.0",
-        "status": "running"
-    }
-
-
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy"
+        "message": "Welcome to Syntrix API"
     }

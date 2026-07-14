@@ -16,12 +16,18 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=UserResponse)
-def create_new_user(
+@router.post("/", response_model=UserResponse, status_code=201)
+def register_user(
     user: UserCreate,
     db: Session = Depends(get_db)
 ):
-    return create_user(db, user)
+    try:
+        return create_user(db, user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
 
 @router.get("/", response_model=list[UserResponse])
