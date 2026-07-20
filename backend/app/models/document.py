@@ -8,6 +8,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.document_chunk import DocumentChunk
 
 
 class Document(Base):
@@ -76,4 +77,14 @@ class Document(Base):
 
     owner: Mapped["User"] = relationship(
         back_populates="documents",
+    )
+
+    # -----------------------------
+    # Phase 5 - RAG
+    # -----------------------------
+
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="DocumentChunk.chunk_index",
     )

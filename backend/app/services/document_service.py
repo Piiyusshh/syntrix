@@ -5,11 +5,14 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.services.chunking_service import chunk_text
 from app.services.file_service import (
     delete_uploaded_file,
     save_uploaded_file,
 )
 from app.services.text_extraction_service import extract_text
+from app.services.vector_store_service import add_chunk
 
 
 def save_document(
@@ -19,7 +22,8 @@ def save_document(
 ) -> Document:
     """
     Save a document, extract its text,
-    and store everything in a single transaction.
+    split it into chunks, and store everything
+    in PostgreSQL and ChromaDB.
     """
 
     if not uploaded_file.filename:
@@ -52,6 +56,35 @@ def save_document(
         )
 
         db.add(document)
+        db.flush()
+
+        chunks = chunk_text(extracted_text)
+
+        document_chunks = []
+
+        for index, chunk in enumerate(chunks):
+            document_chunk = DocumentChunk(
+                document_id=document.id,
+                chunk_index=index,
+                content=chunk,
+            )
+
+            document_chunks.append(document_chunk)
+
+        if document_chunks:
+            db.add_all(document_chunks)
+
+        db.flush()
+
+        # Store every chunk inside ChromaDB
+        for chunk in document_chunks:
+            add_chunk(
+                chunk_id=str(chunk.id),
+                document_id=chunk.document_id,
+                chunk_index=chunk.chunk_index,
+                content=chunk.content,
+            )
+
         db.commit()
         db.refresh(document)
 
