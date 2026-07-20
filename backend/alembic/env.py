@@ -6,8 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.db.base import Base
-from app.models import User
-
+from app.models import Document, User
 config = context.config
 
 if config.config_file_name is not None:
