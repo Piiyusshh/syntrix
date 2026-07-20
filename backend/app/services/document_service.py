@@ -9,6 +9,7 @@ from app.services.file_service import (
     delete_uploaded_file,
     save_uploaded_file,
 )
+from app.services.text_extraction_service import extract_text
 
 
 def save_document(
@@ -17,7 +18,8 @@ def save_document(
     owner_id: int,
 ) -> Document:
     """
-    Save document metadata after storing the file.
+    Save a document, extract its text,
+    and store everything in a single transaction.
     """
 
     if not uploaded_file.filename:
@@ -34,6 +36,8 @@ def save_document(
     ) = save_uploaded_file(uploaded_file)
 
     try:
+        extracted_text = extract_text(file_path)
+
         document = Document(
             filename=uploaded_file.filename,
             stored_filename=stored_filename,
@@ -42,6 +46,9 @@ def save_document(
             file_path=file_path,
             uploaded_at=datetime.now(UTC).replace(tzinfo=None),
             owner_id=owner_id,
+            extracted_text=extracted_text,
+            processing_status="COMPLETED",
+            processed_at=datetime.now(UTC).replace(tzinfo=None),
         )
 
         db.add(document)
@@ -52,11 +59,12 @@ def save_document(
 
     except Exception:
         db.rollback()
+
         delete_uploaded_file(file_path)
 
         raise HTTPException(
             status_code=500,
-            detail="Failed to save document.",
+            detail="Failed to process and save document.",
         )
 
 
@@ -116,7 +124,6 @@ def delete_document(
 ) -> bool:
     """
     Delete a document owned by the specified user.
-    Returns True if deleted, otherwise False.
     """
 
     document = (

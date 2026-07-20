@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -47,6 +47,26 @@ class Document(Base):
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
+    )
+
+    # -----------------------------
+    # Phase 4 - Document Processing
+    # -----------------------------
+
+    extracted_text: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    processing_status: Mapped[str] = mapped_column(
+        String(20),
+        default="PENDING",
+        nullable=False,
+    )
+
+    processed_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
     )
 
     owner_id: Mapped[int] = mapped_column(
