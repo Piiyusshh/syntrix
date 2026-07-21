@@ -6,7 +6,14 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.db.base import Base
-from app.models import Document, DocumentChunk,User
+from app.models import (
+    Conversation,
+    Document,
+    DocumentChunk,
+    Message,
+    User,
+)
+
 config = context.config
 
 if config.config_file_name is not None:
