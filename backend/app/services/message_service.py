@@ -29,17 +29,42 @@ def create_message(
 def get_conversation_messages(
     db: Session,
     conversation_id: int,
+    limit: int = 10,
 ) -> list[Message]:
     """
-    Return all messages for a conversation
-    ordered chronologically.
+    Return the most recent messages for a conversation
+    in chronological order.
     """
 
-    return (
+    messages = (
         db.query(Message)
         .filter(
             Message.conversation_id == conversation_id,
         )
-        .order_by(Message.created_at.asc())
+        .order_by(Message.created_at.desc())
+        .limit(limit)
         .all()
     )
+
+    return list(reversed(messages))
+
+
+def format_conversation_history(
+    messages: list[Message],
+) -> str:
+    """
+    Convert conversation messages into a format
+    suitable for the LLM prompt.
+    """
+
+    if not messages:
+        return ""
+
+    history = []
+
+    for message in messages:
+        history.append(
+            f"{message.role.value.capitalize()}: {message.content}"
+        )
+
+    return "\n\n".join(history)

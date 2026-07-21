@@ -18,6 +18,7 @@ collection = client.get_or_create_collection(
 def add_chunk(
     chunk_id: str,
     document_id: int,
+    document_name: str,
     chunk_index: int,
     content: str,
 ) -> None:
@@ -34,6 +35,7 @@ def add_chunk(
         metadatas=[
             {
                 "document_id": document_id,
+                "document_name": document_name,
                 "chunk_index": chunk_index,
             }
         ],
@@ -72,6 +74,7 @@ def search_chunks(
         matches.append(
             {
                 "document_id": metadata["document_id"],
+                "document_name": metadata["document_name"],
                 "chunk_index": metadata["chunk_index"],
                 "content": document,
                 "distance": distance,

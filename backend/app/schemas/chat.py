@@ -6,5 +6,11 @@ class ChatRequest(BaseModel):
     question: str
 
 
+class Source(BaseModel):
+    document_name: str
+    chunk_index: int
+
+
 class ChatResponse(BaseModel):
     answer: str
+    sources: list[Source]

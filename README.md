@@ -41,7 +41,23 @@ Build an enterprise-grade AI platform capable of:
 
 ---
 
-## Current Status
+## Current Progress
+
+### ✅ Completed
+
+- FastAPI Backend
+- PostgreSQL Integration
+- SQLAlchemy ORM
+- User Model
+- CRUD APIs
+- Swagger Documentation
+
+### APIs
+
+- POST /users
+- GET /users
+- GET /users/{id}
+- DELETE /users/{id}
 
 🚧 Phase 1 — Foundation
 

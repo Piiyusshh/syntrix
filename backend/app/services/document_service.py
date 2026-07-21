@@ -81,6 +81,7 @@ def save_document(
             add_chunk(
                 chunk_id=str(chunk.id),
                 document_id=chunk.document_id,
+                document_name=document.filename,
                 chunk_index=chunk.chunk_index,
                 content=chunk.content,
             )

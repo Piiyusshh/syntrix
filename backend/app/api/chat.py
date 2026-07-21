@@ -26,7 +26,7 @@ def chat(
     Answer a user's question and store the conversation.
     """
 
-    answer = process_chat(
+    result = process_chat(
         db=db,
         conversation_id=request.conversation_id,
         user_id=current_user.id,
@@ -34,5 +34,6 @@ def chat(
     )
 
     return ChatResponse(
-        answer=answer,
+        answer=result["answer"],
+        sources=result["sources"],
     )
