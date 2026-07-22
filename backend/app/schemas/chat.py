@@ -9,6 +9,7 @@ class ChatRequest(BaseModel):
 class Source(BaseModel):
     document_name: str
     chunk_index: int
+    snippet: str
 
 
 class ChatResponse(BaseModel):

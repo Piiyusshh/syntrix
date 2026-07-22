@@ -3,6 +3,9 @@ from app.services.prompt_builder import build_rag_prompt
 from app.services.vector_store_service import search_chunks
 
 
+SNIPPET_LENGTH = 120
+
+
 def retrieve_context(
     query: str,
     top_k: int = 5,
@@ -10,7 +13,7 @@ def retrieve_context(
     """
     Retrieve the most relevant document chunks,
     combine them into a single context string,
-    and return the retrieved source metadata.
+    and return unique source metadata.
     """
 
     matches = search_chunks(
@@ -21,18 +24,34 @@ def retrieve_context(
     if not matches:
         return "", []
 
+    # Build context using all retrieved chunks.
     context = "\n\n".join(
         match["content"]
         for match in matches
     )
 
-    sources = [
-        {
-            "document_name": match["document_name"],
-            "chunk_index": match["chunk_index"],
-        }
-        for match in matches
-    ]
+    # Keep only the first occurrence of each document.
+    seen_documents = set()
+    sources = []
+
+    for match in matches:
+        document_name = match["document_name"]
+
+        if document_name not in seen_documents:
+            snippet = match["content"].strip()
+
+            if len(snippet) > SNIPPET_LENGTH:
+                snippet = snippet[:SNIPPET_LENGTH].rstrip() + "..."
+
+            sources.append(
+                {
+                    "document_name": document_name,
+                    "chunk_index": match["chunk_index"],
+                    "snippet": snippet,
+                }
+            )
+
+            seen_documents.add(document_name)
 
     return context, sources
 
