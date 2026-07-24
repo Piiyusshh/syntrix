@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
 
 class Source(BaseModel):
     document_name: str
+    page_number: int
     chunk_index: int
     snippet: str
 

@@ -1,8 +1,14 @@
 from pathlib import Path
+from typing import cast
 
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
 from fastapi import HTTPException
+
+from app.schemas.extraction import (
+    ExtractedDocument,
+    ExtractedPage,
+)
 
 
 SUPPORTED_FILE_TYPES = {
@@ -12,9 +18,9 @@ SUPPORTED_FILE_TYPES = {
 }
 
 
-def extract_text(file_path: str) -> str:
+def extract_document(file_path: str) -> ExtractedDocument:
     """
-    Extract text from a supported document.
+    Extract text from a supported document while preserving page information.
     """
 
     path = Path(file_path)
@@ -25,7 +31,7 @@ def extract_text(file_path: str) -> str:
             detail="Document file not found.",
         )
 
-    extension = path.suffix.lower().removeprefix(".")
+    extension = path.suffix.lower().lstrip(".")
 
     if extension not in SUPPORTED_FILE_TYPES:
         raise HTTPException(
@@ -35,15 +41,15 @@ def extract_text(file_path: str) -> str:
 
     try:
         if extension == "pdf":
-            text = extract_pdf_text(path)
+            pages = extract_pdf(path)
 
         elif extension == "docx":
-            text = extract_docx_text(path)
+            pages = extract_docx(path)
 
         else:
-            text = extract_txt_text(path)
+            pages = extract_txt(path)
 
-        return clean_text(text)
+        return ExtractedDocument(pages=pages)
 
     except HTTPException:
         raise
@@ -51,64 +57,85 @@ def extract_text(file_path: str) -> str:
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to extract text: {str(exc)}",
+            detail=f"Failed to extract text: {exc}",
         )
 
 
-def extract_pdf_text(path: Path) -> str:
+def extract_pdf(path: Path) -> list[ExtractedPage]:
     """
-    Extract text from a PDF document.
+    Extract text from each page of a PDF.
     """
 
-    document = fitz.open(path)
+    pages: list[ExtractedPage] = []
+
+    document = fitz.open(str(path))
 
     try:
-        pages = []
+        for page_index in range(document.page_count):
+            page = document.load_page(page_index)
 
-        for page in document:
-            pages.append(page.get_text())
+            page_text = cast(str, page.get_text("text"))
 
-        return "\n".join(pages)
+            pages.append(
+                ExtractedPage(
+                    page_number=page_index + 1,
+                    text=clean_text(page_text),
+                )
+            )
+
+        return pages
 
     finally:
         document.close()
 
 
-def extract_docx_text(path: Path) -> str:
+def extract_docx(path: Path) -> list[ExtractedPage]:
     """
     Extract text from a DOCX document.
     """
 
     document = DocxDocument(str(path))
 
-    paragraphs = []
+    text = "\n".join(
+        paragraph.text
+        for paragraph in document.paragraphs
+    )
 
-    for paragraph in document.paragraphs:
-        paragraphs.append(paragraph.text)
+    return [
+        ExtractedPage(
+            page_number=1,
+            text=clean_text(text),
+        )
+    ]
 
-    return "\n".join(paragraphs)
 
-
-def extract_txt_text(path: Path) -> str:
+def extract_txt(path: Path) -> list[ExtractedPage]:
     """
     Extract text from a TXT document.
     """
 
-    return path.read_text(
+    text = path.read_text(
         encoding="utf-8",
         errors="ignore",
     )
 
+    return [
+        ExtractedPage(
+            page_number=1,
+            text=clean_text(text),
+        )
+    ]
+
 
 def clean_text(text: str) -> str:
     """
-    Normalize extracted text.
+    Normalize extracted text by removing extra whitespace
+    and empty lines.
     """
 
     lines = []
 
     for line in text.splitlines():
-
         cleaned = " ".join(line.split())
 
         if cleaned:

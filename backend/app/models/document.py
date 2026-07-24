@@ -59,6 +59,15 @@ class Document(Base):
         nullable=True,
     )
 
+    # -----------------------------
+    # Phase 5 - AI Document Summary
+    # -----------------------------
+
+    summary: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     processing_status: Mapped[str] = mapped_column(
         String(20),
         default="PENDING",

@@ -12,12 +12,18 @@ from sqlalchemy.orm import Session
 from app.api.auth import get_current_user
 from app.db.database import get_db
 from app.models.user import User
-from app.schemas.document import DocumentResponse
+from app.schemas.document import (
+    DocumentResponse,
+    DocumentSummaryResponse,
+)
 from app.services.document_service import (
     delete_document,
     get_document_for_download,
     get_user_documents,
     save_document,
+)
+from app.services.summary_service import (
+    generate_document_summary,
 )
 
 router = APIRouter(
@@ -85,6 +91,27 @@ def download_document(
         path=document.file_path,
         filename=document.filename,
         media_type="application/octet-stream",
+    )
+
+
+@router.post(
+    "/{document_id}/summary",
+    response_model=DocumentSummaryResponse,
+)
+def summarize_document(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate an AI summary for a document.
+    The summary is generated only once and cached.
+    """
+
+    return generate_document_summary(
+        db=db,
+        document_id=document_id,
+        owner_id=current_user.id,
     )
 
 

@@ -11,7 +11,7 @@ from app.services.file_service import (
     delete_uploaded_file,
     save_uploaded_file,
 )
-from app.services.text_extraction_service import extract_text
+from app.services.text_extraction_service import extract_document
 from app.services.vector_store_service import add_chunk
 
 
@@ -21,7 +21,7 @@ def save_document(
     owner_id: int,
 ) -> Document:
     """
-    Save a document, extract its text,
+    Save a document, extract page-aware text,
     split it into chunks, and store everything
     in PostgreSQL and ChromaDB.
     """
@@ -40,7 +40,13 @@ def save_document(
     ) = save_uploaded_file(uploaded_file)
 
     try:
-        extracted_text = extract_text(file_path)
+        extracted_document = extract_document(file_path)
+
+        extracted_text = "\n\n".join(
+            page.text
+            for page in extracted_document.pages
+            if page.text
+        )
 
         document = Document(
             filename=uploaded_file.filename,
@@ -58,30 +64,41 @@ def save_document(
         db.add(document)
         db.flush()
 
-        chunks = chunk_text(extracted_text)
+        document_chunks: list[DocumentChunk] = []
 
-        document_chunks = []
+        chunk_index = 0
 
-        for index, chunk in enumerate(chunks):
-            document_chunk = DocumentChunk(
-                document_id=document.id,
-                chunk_index=index,
-                content=chunk,
-            )
+        for page in extracted_document.pages:
 
-            document_chunks.append(document_chunk)
+            if not page.text:
+                continue
+
+            page_chunks = chunk_text(page.text)
+
+            for chunk in page_chunks:
+
+                document_chunks.append(
+                    DocumentChunk(
+                        document_id=document.id,
+                        page_number=page.page_number,
+                        chunk_index=chunk_index,
+                        content=chunk,
+                    )
+                )
+
+                chunk_index += 1
 
         if document_chunks:
             db.add_all(document_chunks)
 
         db.flush()
 
-        # Store every chunk inside ChromaDB
         for chunk in document_chunks:
             add_chunk(
                 chunk_id=str(chunk.id),
                 document_id=chunk.document_id,
                 document_name=document.filename,
+                page_number=chunk.page_number,
                 chunk_index=chunk.chunk_index,
                 content=chunk.content,
             )

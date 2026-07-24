@@ -24,34 +24,42 @@ def retrieve_context(
     if not matches:
         return "", []
 
-    # Build context using all retrieved chunks.
     context = "\n\n".join(
         match["content"]
         for match in matches
     )
 
-    # Keep only the first occurrence of each document.
-    seen_documents = set()
+    # Keep only the first occurrence of each document/page pair.
+    seen_sources = set()
     sources = []
 
     for match in matches:
-        document_name = match["document_name"]
+        source_key = (
+            match["document_name"],
+            match["page_number"],
+        )
 
-        if document_name not in seen_documents:
-            snippet = match["content"].strip()
+        if source_key in seen_sources:
+            continue
 
-            if len(snippet) > SNIPPET_LENGTH:
-                snippet = snippet[:SNIPPET_LENGTH].rstrip() + "..."
+        snippet = match["content"].strip()
 
-            sources.append(
-                {
-                    "document_name": document_name,
-                    "chunk_index": match["chunk_index"],
-                    "snippet": snippet,
-                }
+        if len(snippet) > SNIPPET_LENGTH:
+            snippet = (
+                snippet[:SNIPPET_LENGTH].rstrip()
+                + "..."
             )
 
-            seen_documents.add(document_name)
+        sources.append(
+            {
+                "document_name": match["document_name"],
+                "page_number": match["page_number"],
+                "chunk_index": match["chunk_index"],
+                "snippet": snippet,
+            }
+        )
+
+        seen_sources.add(source_key)
 
     return context, sources
 
